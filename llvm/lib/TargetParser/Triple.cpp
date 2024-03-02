@@ -39,6 +39,7 @@ StringRef Triple::getArchTypeName(ArchType Kind) {
   case bpfel:          return "bpfel";
   case csky:           return "csky";
   case dxil:           return "dxil";
+  case griscv:         return "griscv";
   case hexagon:        return "hexagon";
   case hsail64:        return "hsail64";
   case hsail:          return "hsail";
@@ -195,6 +196,8 @@ StringRef Triple::getArchTypePrefix(ArchType Kind) {
   case shave:       return "shave";
   case wasm32:
   case wasm64:      return "wasm";
+
+  case griscv:      return "griscv";
 
   case riscv32:
   case riscv64:     return "riscv";
@@ -389,6 +392,7 @@ Triple::ArchType Triple::getArchTypeForLLVMName(StringRef Name) {
     .Case("ppc64le", ppc64le)
     .Case("r600", r600)
     .Case("amdgcn", amdgcn)
+    .Case("griscv", griscv)
     .Case("riscv32", riscv32)
     .Case("riscv64", riscv64)
     .Case("hexagon", hexagon)
@@ -536,6 +540,7 @@ static Triple::ArchType parseArch(StringRef ArchName) {
            "mipsn32r6el", Triple::mips64el)
     .Case("r600", Triple::r600)
     .Case("amdgcn", Triple::amdgcn)
+    .Case("griscv", Triple::griscv)
     .Case("riscv32", Triple::riscv32)
     .Case("riscv64", Triple::riscv64)
     .Case("hexagon", Triple::hexagon)
@@ -879,6 +884,7 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
   case Triple::r600:
   case Triple::renderscript32:
   case Triple::renderscript64:
+  case Triple::griscv:
   case Triple::riscv32:
   case Triple::riscv64:
   case Triple::shave:
@@ -1521,6 +1527,7 @@ unsigned Triple::getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
   case llvm::Triple::ppc64:
   case llvm::Triple::ppc64le:
   case llvm::Triple::renderscript64:
+  case llvm::Triple::griscv:
   case llvm::Triple::riscv64:
   case llvm::Triple::sparcv9:
   case llvm::Triple::spirv:
@@ -1582,6 +1589,7 @@ Triple Triple::get32BitArchVariant() const {
   case Triple::ppcle:
   case Triple::r600:
   case Triple::renderscript32:
+  case Triple::griscv:
   case Triple::riscv32:
   case Triple::shave:
   case Triple::sparc:
@@ -1666,6 +1674,7 @@ Triple Triple::get64BitArchVariant() const {
   case Triple::ppc64:
   case Triple::ppc64le:
   case Triple::renderscript64:
+  case Triple::griscv:
   case Triple::riscv64:
   case Triple::sparcv9:
   case Triple::spir64:
@@ -1846,6 +1855,7 @@ bool Triple::isLittleEndian() const {
   case Triple::renderscript64:
   case Triple::riscv32:
   case Triple::riscv64:
+  case Triple::griscv:
   case Triple::shave:
   case Triple::sparcel:
   case Triple::spir64:
