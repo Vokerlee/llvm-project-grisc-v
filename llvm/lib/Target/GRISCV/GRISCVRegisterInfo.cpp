@@ -21,7 +21,7 @@ using namespace llvm;
 #define DEBUG_TYPE "GRISCV-reg-info"
 #define GET_REGINFO_TARGET_DESC
 
-GRISCVRegisterInfo::GRISCVRegisterInfo() : GRISCVGenRegisterInfo(GRISCV::R1) {}
+GRISCVRegisterInfo::GRISCVRegisterInfo() : GRISCVGenRegisterInfo(griscv::X1) {}
 
 // const MCPhysReg *
 // GRISCVRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
@@ -31,10 +31,10 @@ GRISCVRegisterInfo::GRISCVRegisterInfo() : GRISCVGenRegisterInfo(GRISCV::R1) {}
 // TODO: check calling conv
 BitVector GRISCVRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
-  Reserved.set(GRISCV::R0);
-  Reserved.set(GRISCV::R1);
-  Reserved.set(GRISCV::R2);
-  Reserved.set(GRISCV::R3);
+  Reserved.set(griscv::X0); // zero
+  Reserved.set(griscv::X2); // sp
+  Reserved.set(griscv::X3); // gp
+  Reserved.set(griscv::X4); // tp
   return Reserved;
 }
 

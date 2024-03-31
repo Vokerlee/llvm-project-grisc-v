@@ -3,6 +3,7 @@ add_llvm_component_group(GRISCV)
 set(LLVM_TARGET_DEFINITIONS GRISCV.td)
 
 tablegen(LLVM GRISCVGenRegisterInfo.inc -gen-register-info)
+tablegen(LLVM GRISCVGenRegisterInfo.inc -gen-register-info)
 
 add_public_tablegen_target(GRISCVCommonTableGen)
 
