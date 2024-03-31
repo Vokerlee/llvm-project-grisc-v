@@ -18,7 +18,7 @@
 
 using namespace llvm;
 
-#define DEBUG_TYPE "GRISCV-reg-info"
+#define DEBUG_TYPE "griscv-reg-info"
 #define GET_REGINFO_TARGET_DESC
 
 GRISCVRegisterInfo::GRISCVRegisterInfo() : GRISCVGenRegisterInfo(griscv::X1) {}

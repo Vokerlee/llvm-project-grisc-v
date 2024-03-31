@@ -9,7 +9,7 @@
 include "llvm/Target/Target.td"
 
 //===----------------------------------------------------------------------===//
-// sim Subtarget features
+// GRISCV Subtarget features
 //===----------------------------------------------------------------------===//
 
 defvar GRV64 = DefaultMode;
@@ -21,6 +21,15 @@ defvar GRV64 = DefaultMode;
 include "GRISCVRegisterInfo.td"
 
 //===----------------------------------------------------------------------===//
+// Calling Conv, Instruction Descriptions
+//===----------------------------------------------------------------------===//
+
+include "GRISCVSchedule.td"
+
+include "GRISCVInstrsInfo.td"
+def GRISCVInstrInfo : InstrInfo;
+
+//===----------------------------------------------------------------------===//
 // GRISCV processors supported.
 //===----------------------------------------------------------------------===//
 
@@ -30,5 +39,5 @@ class Proc<string Name, list<SubtargetFeature> Features>
 def : Proc<"generic", []>;
 
 def GRISCV : Target {
-//   let InstructionSet = GRISCVInstrInfo;
+  let InstructionSet = GRISCVInstrInfo;
 }
