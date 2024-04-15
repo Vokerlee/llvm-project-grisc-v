@@ -255,6 +255,8 @@ static const char *getLDMOption(const llvm::Triple &T, const ArgList &Args) {
     return "elf32lriscv";
   case llvm::Triple::riscv64:
     return "elf64lriscv";
+  case llvm::Triple::griscv:
+    llvm_unreachable("No LDM option for griscv target");
   case llvm::Triple::sparc:
   case llvm::Triple::sparcel:
     return "elf32_sparc";

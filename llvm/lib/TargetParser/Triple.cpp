@@ -1590,6 +1590,7 @@ Triple Triple::get32BitArchVariant() const {
   case Triple::r600:
   case Triple::renderscript32:
   case Triple::griscv:
+    llvm_unreachable("griscv doesn't support 32-bit mode");
   case Triple::riscv32:
   case Triple::shave:
   case Triple::sparc:

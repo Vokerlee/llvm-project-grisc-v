@@ -58,7 +58,7 @@ namespace griscvFeatures {
 inline void validate(const Triple &TT, const FeatureBitset &FeatureBits) {}
 
 inline void toFeatureVector(std::vector<std::string> &FeatureVector,
-                     const FeatureBitset &FeatureBits) {}
+                            const FeatureBitset &FeatureBits) {}
 
 } // namespace griscvFeatures
 
@@ -83,12 +83,12 @@ enum BRCondCode {
 namespace griscvOp {
 enum OperandType : unsigned {
   OPERAND_FIRST_griscv_IMM = MCOI::OPERAND_FIRST_TARGET,
-  OPERAND_UIMM2 = OPERAND_FIRST_griscv_IMM,
-  OPERAND_UIMM3,
-  OPERAND_UIMM4,
-  OPERAND_UIMM5,
-  OPERAND_UIMM7,
-  OPERAND_UIMM12,
+  // OPERAND_UIMM2 = OPERAND_FIRST_griscv_IMM,
+  // OPERAND_UIMM3,
+  // OPERAND_UIMM4,
+  // OPERAND_UIMM5,
+  // OPERAND_UIMM7,
+  // OPERAND_UIMM12,
   OPERAND_SIMM12,
   OPERAND_UIMM20,
   OPERAND_UIMMLOG2XLEN,
@@ -104,11 +104,6 @@ enum OperandType : unsigned {
 namespace griscvABI {
 
 enum ABI { ABI_LP64, ABI_Unknown };
-
-// Returns the target ABI, or else a StringError if the requested ABIName is
-// not supported for the given TT and FeatureBits combination.
-ABI computeTargetABI(const Triple &TT, FeatureBitset FeatureBits,
-                     StringRef ABIName);
 
 ABI getTargetABI(StringRef ABIName);
 

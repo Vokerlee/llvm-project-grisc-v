@@ -13,9 +13,31 @@
 #ifndef LLVM_LIB_TARGET_GRISCV_MCTARGETDESC_GRISCVMCTARGETDESC_H
 #define LLVM_LIB_TARGET_GRISCV_MCTARGETDESC_GRISCVMCTARGETDESC_H
 
-#include "llvm/Config/config.h"
 #include "llvm/MC/MCTargetOptions.h"
-#include "llvm/Support/DataTypes.h"
 #include <memory>
+
+namespace llvm {
+class Triple;
+class MCAsmBackend;
+class MCCodeEmitter;
+class MCContext;
+class MCInstrInfo;
+class MCObjectTargetWriter;
+class MCRegisterInfo;
+class MCSubtargetInfo;
+class Target;
+
+extern Target TheGRISCVTarget;
+
+MCCodeEmitter *createGRISCVMCCodeEmitter(const MCInstrInfo &MCII,
+                                         MCContext &Ctx);
+
+std::unique_ptr<MCObjectTargetWriter> createGRISCVELFObjectWriter(uint8_t OSABI,
+                                                                  bool Is64Bit);
+
+MCAsmBackend *createGRISCVAsmBackend(const Target &T, const MCSubtargetInfo &STI,
+                                     const MCRegisterInfo &MRI,
+                                     const MCTargetOptions &Options);
+} // namespace llvm
 
 #endif // LLVM_LIB_TARGET_GRISCV_MCTARGETDESC_GRISCVMCTARGETDESC_H

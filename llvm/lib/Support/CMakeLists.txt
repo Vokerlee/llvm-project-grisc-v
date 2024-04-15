@@ -187,6 +187,8 @@ add_llvm_component_library(LLVMSupport
   FormatVariadic.cpp
   GlobPattern.cpp
   GraphWriter.cpp
+  GRISCVAttributes.cpp
+  GRISCVISAInfo.cpp
   Hashing.cpp
   InitLLVM.cpp
   InstructionCost.cpp

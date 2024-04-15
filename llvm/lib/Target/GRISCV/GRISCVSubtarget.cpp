@@ -1,5 +1,4 @@
 #include "GRISCVSubtarget.h"
-#include "GRISCV.h"
 
 using namespace llvm;
 
@@ -11,11 +10,7 @@ using namespace llvm;
 
 void GRISCVSubtarget::anchor() {}
 
-// GRISCVSubtarget::GRISCVSubtarget(const Triple &TT, const std::string &CPU,
-//                              const std::string &FS, const TargetMachine &TM)
-//     : GRISCVGenSubtargetInfo(TT, CPU, /*TuneCPU=*/CPU, FS), InstrInfo(*this),
-//       FrameLowering(*this), TLInfo(TM, *this) {}
-
 GRISCVSubtarget::GRISCVSubtarget(const Triple &TT, const std::string &CPU,
-                                 const std::string &FS, const TargetMachine &TM)
-    : GRISCVGenSubtargetInfo(TT, CPU, /*TuneCPU=*/CPU, FS) {}
+                             const std::string &FS, const TargetMachine &TM)
+    : GRISCVGenSubtargetInfo(TT, CPU, /*TuneCPU=*/CPU, FS), InstrInfo(*this),
+      FrameLowering(*this), TLInfo(TM, *this) {}

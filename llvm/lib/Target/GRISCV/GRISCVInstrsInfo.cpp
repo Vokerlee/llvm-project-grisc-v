@@ -1,19 +1,18 @@
 #include "GRISCVInstrsInfo.h"
-#include "GRISCV.h"
+#include "GRISCVSubtarget.h"
 #include "MCTargetDesc/GRISCVInfo.h"
-// #include "GRISCVSubtarget.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineMemOperand.h"
 #include "llvm/Support/ErrorHandling.h"
 
-using namespace llvm;
-
 #define GET_INSTRINFO_ENUM
 #define GET_INSTRINFO_CTOR_DTOR
-#include "GRISCVGenInstrInfo.inc"
+#include "GRISCVGenInstrsInfo.inc"
 
 #define DEBUG_TYPE "griscv-inst-info"
+
+using namespace llvm;
 
 void GRISCVInstrInfo::anchor() {}
 
@@ -22,24 +21,13 @@ GRISCVInstrInfo::GRISCVInstrInfo(const GRISCVSubtarget &STI)
 }
 
 Register GRISCVInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
-                                            int &FrameIndex) const {
-  switch (MI.getOpcode()) {
-  default:
-    return 0;
-    // TODO: load opcodes
-    break;
-  }
-
-  if (MI.getOperand(1).isFI() && MI.getOperand(2).isImm() &&
-      MI.getOperand(2).getImm() == 0) {
-    FrameIndex = MI.getOperand(1).getIndex();
-    return MI.getOperand(0).getReg();
-  }
+                                              int &FrameIndex) const {
+  llvm_unreachable("");
   return 0;
 }
 
 Register GRISCVInstrInfo::isStoreToStackSlot(const MachineInstr &MI,
-                                           int &FrameIndex) const {
+                                             int &FrameIndex) const {
   llvm_unreachable("");
   return 0;
 }
@@ -68,6 +56,7 @@ static void parseCondBranch(MachineInstr &LastInst, MachineBasicBlock *&Target,
   // Block ends with fall-through condbranch.
   assert(LastInst.getDesc().isConditionalBranch() &&
          "Unknown conditional branch");
+
   Target = LastInst.getOperand(2).getMBB();
   unsigned CC = getCondFromBranchOpc(LastInst.getOpcode());
   Cond.push_back(MachineOperand::CreateImm(CC));
@@ -115,10 +104,10 @@ griscvCC::CondCode griscvCC::getOppositeBranchCondition(griscvCC::CondCode CC) {
 
 // TODO: inherited from riscv
 bool GRISCVInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
-                                  MachineBasicBlock *&TBB,
-                                  MachineBasicBlock *&FBB,
-                                  SmallVectorImpl<MachineOperand> &Cond,
-                                  bool AllowModify) const {
+                                    MachineBasicBlock *&TBB,
+                                    MachineBasicBlock *&FBB,
+                                    SmallVectorImpl<MachineOperand> &Cond,
+                                    bool AllowModify) const {
   TBB = FBB = nullptr;
   Cond.clear();
 
@@ -182,9 +171,8 @@ bool GRISCVInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
   return true;
 }
 
-// TODO: explore
 unsigned GRISCVInstrInfo::removeBranch(MachineBasicBlock &MBB,
-                                     int *BytesRemoved) const {
+                                       int *BytesRemoved) const {
   if (BytesRemoved)
     *BytesRemoved = 0;
   MachineBasicBlock::iterator I = MBB.getLastNonDebugInstr();
@@ -222,9 +210,9 @@ GRISCVInstrInfo::getBranchDestBlock(const MachineInstr &MI) const {
 }
 
 void GRISCVInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
-                                MachineBasicBlock::iterator MBBI,
-                                const DebugLoc &DL, MCRegister DstReg,
-                                MCRegister SrcReg, bool KillSrc) const {
+                                  MachineBasicBlock::iterator MBBI,
+                                  const DebugLoc &DL, MCRegister DstReg,
+                                  MCRegister SrcReg, bool KillSrc) const {
   if (griscv::GPRRegClass.contains(DstReg, SrcReg)) {
     BuildMI(MBB, MBBI, DL, get(griscv::ADDI), DstReg)
         .addReg(SrcReg, getKillRegState(KillSrc))
@@ -235,10 +223,11 @@ void GRISCVInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
 }
 
 void GRISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
-                                        MachineBasicBlock::iterator I,
-                                        Register SrcReg, bool IsKill, int FI,
-                                        const TargetRegisterClass *RC,
-                                        const TargetRegisterInfo *TRI) const {
+                                          MachineBasicBlock::iterator I,
+                                          Register SrcReg, bool IsKill, int FI,
+                                          const TargetRegisterClass *RC,
+                                          const TargetRegisterInfo *TRI,
+                                          Register VReg) const {
   DebugLoc DL;
   if (I != MBB.end())
     DL = I->getDebugLoc();
@@ -250,7 +239,7 @@ void GRISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
       MachinePointerInfo::getFixedStack(*MF, FI), MachineMemOperand::MOStore,
       MFI.getObjectSize(FI), MFI.getObjectAlign(FI));
 
-  BuildMI(MBB, I, DL, get(griscv::SW))
+  BuildMI(MBB, I, DL, get(griscv::SD))
       .addReg(SrcReg, getKillRegState(IsKill))
       .addFrameIndex(FI)
       .addImm(0)
@@ -258,10 +247,11 @@ void GRISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
 }
 
 void GRISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
-                                         MachineBasicBlock::iterator I,
-                                         Register DstReg, int FI,
-                                         const TargetRegisterClass *RC,
-                                         const TargetRegisterInfo *TRI) const {
+                                           MachineBasicBlock::iterator I,
+                                           Register DstReg, int FI,
+                                           const TargetRegisterClass *RC,
+                                           const TargetRegisterInfo *TRI,
+                                           Register VReg) const {
   DebugLoc DL;
   if (I != MBB.end())
     DL = I->getDebugLoc();
@@ -273,7 +263,7 @@ void GRISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
       MachinePointerInfo::getFixedStack(*MF, FI), MachineMemOperand::MOLoad,
       MFI.getObjectSize(FI), MFI.getObjectAlign(FI));
 
-  BuildMI(MBB, I, DL, get(griscv::LW), DstReg)
+  BuildMI(MBB, I, DL, get(griscv::LD), DstReg)
       .addFrameIndex(FI)
       .addImm(0)
       .addMemOperand(MMO);
@@ -287,7 +277,6 @@ bool GRISCVInstrInfo::reverseBranchCondition(
   return false;
 }
 
-// TODO: explore
 unsigned GRISCVInstrInfo::insertBranch(
     MachineBasicBlock &MBB, MachineBasicBlock *TBB, MachineBasicBlock *FBB,
     ArrayRef<MachineOperand> Cond, const DebugLoc &DL, int *BytesAdded) const {

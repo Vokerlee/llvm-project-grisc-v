@@ -3,6 +3,7 @@
 
 #include "GRISCVSubtarget.h"
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/Support/CodeGen.h"
 
 namespace llvm {
 
@@ -13,8 +14,8 @@ class GRISCVTargetMachine : public LLVMTargetMachine {
 public:
   GRISCVTargetMachine(const Target &T, const Triple &TT, StringRef CPU,
                     StringRef FS, const TargetOptions &Options,
-                    Optional<Reloc::Model> RM, Optional<CodeModel::Model> CM,
-                    CodeGenOpt::Level OL, bool JIT);
+                    std::optional<Reloc::Model> RM, std::optional<CodeModel::Model> CM,
+                    CodeGenOptLevel OL, bool JIT);
   ~GRISCVTargetMachine() override;
 
   const GRISCVSubtarget *getSubtargetImpl() const { return &Subtarget; }
@@ -27,7 +28,15 @@ public:
   TargetLoweringObjectFile *getObjFileLowering() const override {
     return TLOF.get();
   }
+
+  MachineFunctionInfo *
+  createMachineFunctionInfo(BumpPtrAllocator &Allocator, const Function &F,
+                            const TargetSubtargetInfo *STI) const override;
 };
+
+FunctionPass *createGRISCVISelDag(GRISCVTargetMachine &TM,
+                                  CodeGenOptLevel OptLevel);
+
 } // end namespace llvm
 
 #endif // __LLVM_LIB_TARGET_SIM_SIMTARGETMACHINE_H__

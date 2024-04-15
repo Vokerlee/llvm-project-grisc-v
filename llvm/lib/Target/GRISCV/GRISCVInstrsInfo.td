@@ -5,14 +5,14 @@
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
-// RISC-V specific DAG Nodes.
+// GRISC-V specific DAG Nodes.
 //===----------------------------------------------------------------------===//
 
 // Target-independent type requirements, but with target-specific formats.
-def SDT_CallSeqStart : SDCallSeqStart<[SDTCisVT<0, i32>,
-                                       SDTCisVT<1, i32>]>;
-def SDT_CallSeqEnd   : SDCallSeqEnd<[SDTCisVT<0, i32>,
-                                     SDTCisVT<1, i32>]>;
+def SDT_CallSeqStart : SDCallSeqStart<[SDTCisVT<0, i64>,
+                                       SDTCisVT<1, i64>]>;
+def SDT_CallSeqEnd   : SDCallSeqEnd<[SDTCisVT<0, i64>,
+                                     SDTCisVT<1, i64>]>;
 
 // Target-dependent type requirements.
 def SDT_griscvCall     : SDTypeProfile<0, -1, [SDTCisVT<0, XLenVT>]>;
@@ -23,11 +23,6 @@ def SDT_griscvSelectCC : SDTypeProfile<1, 5, [SDTCisSameAs<1, 2>,
 def SDT_griscvBrCC     : SDTypeProfile<0, 4, [SDTCisSameAs<0, 1>,
                                               SDTCisVT<2, OtherVT>,
                                               SDTCisVT<3, OtherVT>]>;
-def SDT_griscvReadCycleWide : SDTypeProfile<2, 0, [SDTCisVT<0, i32>,
-                                                  SDTCisVT<1, i32>]>;
-def SDT_griscvIntUnaryOpW : SDTypeProfile<1, 1, [
-  SDTCisSameAs<0, 1>, SDTCisVT<0, i64>
-]>;
 def SDT_griscvIntBinOpW : SDTypeProfile<1, 2, [
   SDTCisSameAs<0, 1>, SDTCisSameAs<0, 2>, SDTCisVT<0, i64>
 ]>;
@@ -60,24 +55,24 @@ def griscv_sllw      : SDNode<"griscvISD::SLLW", SDT_griscvIntBinOpW>;
 def griscv_sraw      : SDNode<"griscvISD::SRAW", SDT_griscvIntBinOpW>;
 def griscv_srlw      : SDNode<"griscvISD::SRLW", SDT_griscvIntBinOpW>;
 
-def griscv_read_cycle_wide : SDNode<"griscvISD::READ_CYCLE_WIDE",
-                                   SDT_griscvReadCycleWide,
-                                   [SDNPHasChain, SDNPSideEffect]>;
-
 def griscv_add_lo : SDNode<"griscvISD::ADD_LO", SDTIntBinOp>;
 def griscv_hi : SDNode<"griscvISD::HI", SDTIntUnaryOp>;
 def griscv_lla : SDNode<"griscvISD::LLA", SDTIntUnaryOp>;
-// def griscv_add_tprel : SDNode<"griscvISD::ADD_TPREL",
-//                              SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>,
-//                                                   SDTCisSameAs<0, 2>,
-//                                                   SDTCisSameAs<0, 3>,
-//                                                   SDTCisInt<0>]>>;
+def griscv_add_tprel : SDNode<"griscvISD::ADD_TPREL",
+                             SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>,
+                                                  SDTCisSameAs<0, 2>,
+                                                  SDTCisSameAs<0, 3>,
+                                                  SDTCisInt<0>]>>;
 
 def griscv_la : SDNode<"griscvISD::LA", SDTLoad,
                       [SDNPHasChain, SDNPMayLoad, SDNPMemOperand]>;
 def griscv_la_tls_ie : SDNode<"griscvISD::LA_TLS_IE", SDTLoad,
                              [SDNPHasChain, SDNPMayLoad, SDNPMemOperand]>;
 def griscv_la_tls_gd : SDNode<"griscvISD::LA_TLS_GD", SDTIntUnaryOp>;
+
+def griscv_divw  : SDNode<"griscvISD::DIVW",  SDT_griscvIntBinOpW>;
+def griscv_divuw : SDNode<"griscvISD::DIVUW", SDT_griscvIntBinOpW>;
+def griscv_remuw : SDNode<"griscvISD::REMUW", SDT_griscvIntBinOpW>;
 
 //===----------------------------------------------------------------------===//
 // griscv Operand, Complex Patterns and Transformations Definitions.
@@ -311,6 +306,11 @@ class ALU_rr<bits<7> funct7, bits<3> funct3, string opcodestr>
     : griscvInstR<funct7, funct3, OPC_OP, (outs GPR:$rd), (ins GPR:$rs1, GPR:$rs2),
               opcodestr, "$rd, $rs1, $rs2">;
 
+let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
+class ALUW_rr<bits<7> funct7, bits<3> funct3, string opcodestr>
+    : griscvInstR<funct7, funct3, OPC_OP_32, (outs GPR:$rd),
+              (ins GPR:$rs1, GPR:$rs2), opcodestr, "$rd, $rs1, $rs2">;
+
 //===----------------------------------------------------------------------===//
 // Instructions
 //===----------------------------------------------------------------------===//
@@ -378,6 +378,27 @@ def SRA  : ALU_rr<0b0100000, 0b101, "sra">, Sched<[WriteShiftReg, ReadShiftReg, 
 def OR   : ALU_rr<0b0000000, 0b110, "or">, Sched<[WriteIALU, ReadIALU, ReadIALU]>;
 def AND  : ALU_rr<0b0000000, 0b111, "and">, Sched<[WriteIALU, ReadIALU, ReadIALU]>;
 
+def MUL     : ALU_rr<0b0000001, 0b000, "mul">,
+              Sched<[WriteIMul, ReadIMul, ReadIMul]>;
+
+def DIV     : ALU_rr<0b0000001, 0b100, "div">,
+              Sched<[WriteIDiv, ReadIDiv, ReadIDiv]>;
+def DIVU    : ALU_rr<0b0000001, 0b101, "divu">,
+              Sched<[WriteIDiv, ReadIDiv, ReadIDiv]>;
+def REM     : ALU_rr<0b0000001, 0b110, "rem">,
+              Sched<[WriteIDiv, ReadIDiv, ReadIDiv]>;
+def REMU    : ALU_rr<0b0000001, 0b111, "remu">,
+              Sched<[WriteIDiv, ReadIDiv, ReadIDiv]>;
+
+def DIVW    : ALUW_rr<0b0000001, 0b100, "divw">,
+              Sched<[WriteIDiv32, ReadIDiv32, ReadIDiv32]>;
+def DIVUW   : ALUW_rr<0b0000001, 0b101, "divuw">,
+              Sched<[WriteIDiv32, ReadIDiv32, ReadIDiv32]>;
+def REMW    : ALUW_rr<0b0000001, 0b110, "remw">,
+              Sched<[WriteIDiv32, ReadIDiv32, ReadIDiv32]>;
+def REMUW   : ALUW_rr<0b0000001, 0b111, "remuw">,
+              Sched<[WriteIDiv32, ReadIDiv32, ReadIDiv32]>;
+
 def SLTI  : ALU_ri<0b010, "slti">;
 def SLTIU : ALU_ri<0b011, "sltiu">;
 
@@ -398,7 +419,7 @@ def ANDI  : ALU_ri<0b111, "andi">;
 
 /// Branches and jumps
 
-// Match `griscv_brcc` and lower to the appropriate RISC-V branch instruction.
+// Match `griscv_brcc` and lower to the appropriate GRISC-V branch instruction.
 class BccPat<CondCode Cond, griscvInstB Inst>
     : Pat<(griscv_brcc GPR:$rs1, GPR:$rs2, Cond, bb:$imm12),
           (Inst GPR:$rs1, GPR:$rs2, simm13_lsb0:$imm12)>;
@@ -504,8 +525,11 @@ def IsOrAdd: PatFrag<(ops node:$A, node:$B), (or node:$A, node:$B), [{
 
 class PatGpr<SDPatternOperator OpNode, griscvInst Inst>
     : Pat<(OpNode GPR:$rs1), (Inst GPR:$rs1)>;
-class PatGprGpr<SDPatternOperator OpNode, griscvInst Inst>
-    : Pat<(OpNode GPR:$rs1, GPR:$rs2), (Inst GPR:$rs1, GPR:$rs2)>;
+// class PatGprGpr<SDPatternOperator OpNode, griscvInst Inst>
+//     : Pat<(OpNode GPR:$rs1, GPR:$rs2), (Inst GPR:$rs1, GPR:$rs2)>;
+class PatGprGpr<SDPatternOperator OpNode, griscvInst Inst, ValueType vt1 = XLenVT,
+                ValueType vt2 = XLenVT>
+    : Pat<(vt1 (OpNode (vt1 GPR:$rs1), (vt2 GPR:$rs2))), (Inst GPR:$rs1, GPR:$rs2)>;
 
 class PatGprImm<SDPatternOperator OpNode, griscvInst Inst, ImmLeaf ImmType>
     : Pat<(XLenVT (OpNode (XLenVT GPR:$rs1), ImmType:$imm)),
@@ -532,6 +556,21 @@ def : PatGprSimm12<xor, XORI>;
 def : PatGprUimmLog2XLen<shl, SLLI>;
 def : PatGprUimmLog2XLen<srl, SRLI>;
 def : PatGprUimmLog2XLen<sra, SRAI>;
+
+def : PatGprGpr<mul, MUL>;
+def : PatGprGpr<sdiv, DIV>;
+def : PatGprGpr<udiv, DIVU>;
+def : PatGprGpr<srem, REM>;
+def : PatGprGpr<urem, REMU>;
+
+def : PatGprGpr<griscv_divw, DIVW>;
+def : PatGprGpr<griscv_divuw, DIVUW>;
+def : PatGprGpr<griscv_remuw, REMUW>;
+
+def : PatGprGpr<setlt, SLT>;
+def : PatGprSimm12<setlt, SLTI>;
+def : PatGprGpr<setult, SLTU>;
+def : PatGprSimm12<setult, SLTIU>;
 
 /// FrameIndex calculations
 
@@ -583,10 +622,13 @@ defm : StPat<truncstorei16, SH, GPR, XLenVT>;
 defm : StPat<truncstorei32, SW, GPR, i64>;
 defm : StPat<store, SD, GPR, i64>;
 
+// It is universal thing: do trunc & sext easily by 1 pattern
+def : Pat<(sext_inreg GPR:$rs1, i32), (ADDIW GPR:$rs1, 0)>;
+
 // Pessimistically assume the stack pointer will be clobbered
 let Defs = [X2], Uses = [X2] in {
-def ADJCALLSTACKDOWN : Pseudo<(outs), (ins i32imm:$amt1, i32imm:$amt2),
+def ADJCALLSTACKDOWN : Pseudo<(outs), (ins i64imm:$amt1, i64imm:$amt2),
                               [(callseq_start timm:$amt1, timm:$amt2)]>;
-def ADJCALLSTACKUP   : Pseudo<(outs), (ins i32imm:$amt1, i32imm:$amt2),
+def ADJCALLSTACKUP   : Pseudo<(outs), (ins i64imm:$amt1, i64imm:$amt2),
                               [(callseq_end timm:$amt1, timm:$amt2)]>;
 } // Defs = [X2], Uses = [X2]
