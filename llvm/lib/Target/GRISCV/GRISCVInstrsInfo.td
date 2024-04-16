@@ -409,6 +409,14 @@ def ORI   : ALU_ri<0b110, "ori">;
 
 def ANDI  : ALU_ri<0b111, "andi">;
 
+def RAND : griscvInstInt<0b000000000111, OPC_INTRINSIC,
+    (outs GPR:$rd), (ins GPR:$rs1), "rand", "$rd, $rs1", []>;
+def DRAW : griscvInstIntV<0b000000001111, OPC_INTRINSIC,
+    (outs), (ins GPR:$rs1), "draw", "$rs1", []>;
+
+def : Pat<(int_griscv_rand GPR:$rs1), (RAND GPR:$rs1)>;
+def : Pat<(int_griscv_draw GPR:$rs1), (DRAW GPR:$rs1)>;
+
 //===----------------------------------------------------------------------===//
 // Pseudo-instructions and codegen patterns
 //

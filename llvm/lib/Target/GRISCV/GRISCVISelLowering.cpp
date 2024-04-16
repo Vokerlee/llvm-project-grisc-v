@@ -15,6 +15,7 @@
 #include "llvm/CodeGen/TargetLowering.h"
 #include "llvm/CodeGen/ValueTypes.h"
 #include "llvm/IR/Intrinsics.h"
+#include "llvm/IR/IntrinsicsGRISCV.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include <algorithm>
@@ -30,8 +31,6 @@ template<class T, unsigned N>
 inline unsigned array_lengthof(T (&)[N]) {
   return N;
 }
-
-#include <iostream>
 
 // Returns the opcode of the target-specific SDNode that implements the 32-bit
 // form of the given Opcode.
@@ -137,8 +136,9 @@ GRISCVTargetLowering::GRISCVTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::BR_CC, MVT::i64, Custom);
 
   setOperationAction(ISD::FRAMEADDR, MVT::i64, Legal);
-  // setOperationAction(ISD::FrameIndex, MVT::i64, Custom);
-  // setOperationAction(ISD::GlobalAddress, MVT::i64, Custom);
+
+  setOperationAction(ISD::INTRINSIC_W_CHAIN, MVT::i64, Custom);
+  setOperationAction(ISD::INTRINSIC_VOID, MVT::i64, Custom);
 }
 
 const char *GRISCVTargetLowering::getTargetNodeName(unsigned Opcode) const {

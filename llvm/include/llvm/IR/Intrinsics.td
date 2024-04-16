@@ -1700,7 +1700,7 @@ def int_coro_subfn_addr : DefaultAttrsIntrinsic<
 
 ///===-------------------------- Other Intrinsics --------------------------===//
 //
-// TODO: We should introduce a new memory kind fo traps (and other side effects 
+// TODO: We should introduce a new memory kind fo traps (and other side effects
 //       we only model to keep things alive).
 def int_trap : Intrinsic<[], [], [IntrNoReturn, IntrCold, IntrInaccessibleMemOnly,
                IntrWriteMem]>, ClangBuiltin<"__builtin_trap">;
@@ -2634,5 +2634,6 @@ include "llvm/IR/IntrinsicsSPIRV.td"
 include "llvm/IR/IntrinsicsVE.td"
 include "llvm/IR/IntrinsicsDirectX.td"
 include "llvm/IR/IntrinsicsLoongArch.td"
+include "llvm/IR/IntrinsicsGRISCV.td"
 
 #endif // TEST_INTRINSICS_SUPPRESS_DEFS

@@ -23,7 +23,7 @@ public:
 
     NoAsmVariants = true;
     LongLongAlign = 64;
-    SuitableAlign = 128;
+    SuitableAlign = 64;
     SizeType = UnsignedLong;
     PtrDiffType = SignedLong;
     IntPtrType = SignedLong;
@@ -34,7 +34,7 @@ public:
   void getTargetDefines(const LangOptions &Opts,
                         MacroBuilder &Builder) const override;
 
-  ArrayRef<Builtin::Info> getTargetBuiltins() const override { return std::nullopt; }
+  ArrayRef<Builtin::Info> getTargetBuiltins() const override;
 
   BuiltinVaListKind getBuiltinVaListKind() const override {
     return TargetInfo::VoidPtrBuiltinVaList;

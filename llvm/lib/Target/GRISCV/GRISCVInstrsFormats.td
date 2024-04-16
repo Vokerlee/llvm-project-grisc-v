@@ -19,6 +19,7 @@ def InstFormatS           : InstFormat<3>;
 def InstFormatB           : InstFormat<4>;
 def InstFormatU           : InstFormat<5>;
 def InstFormatJ           : InstFormat<6>;
+def InstFormatIntr        : InstFormat<7>;
 
 class griscvOpcode<string name, bits<7> val> {
   string Name = name;
@@ -48,6 +49,7 @@ def OPC_BRANCH    : griscvOpcode<"BRANCH",    0b1100011>;
 def OPC_JALR      : griscvOpcode<"JALR",      0b1100111>;
 def OPC_JAL       : griscvOpcode<"JAL",       0b1101111>;
 def OPC_SYSTEM    : griscvOpcode<"SYSTEM",    0b1110011>;
+def OPC_INTRINSIC : griscvOpcode<"INTRINSIC", 0b1111111>;
 
 class griscvInst<dag outs, dag ins, string opcodestr, string argstr,
              list<dag> pattern, InstFormat format>
@@ -109,6 +111,31 @@ class griscvInstR<bits<7> funct7, bits<3> funct3, griscvOpcode opcode, dag outs,
   let Inst{19-15} = rs1;
   let Inst{14-12} = funct3;
   let Inst{11-7} = rd;
+  let Opcode = opcode.Value;
+}
+
+class griscvInstInt<bits<12> funct12, griscvOpcode opcode,
+          dag outs, dag ins, string opcodestr, string argstr, list<dag> pattern>
+    : griscvInst<outs, ins, opcodestr, argstr, pattern, InstFormatIntr> {
+  bits<5> rs1;
+  bits<5> rd;
+
+  let Inst{31-20} = funct12;
+  let Inst{19-15} = rs1;
+  let Inst{14-12} = 0;
+  let Inst{11-7} = rd;
+  let Opcode = opcode.Value;
+}
+
+class griscvInstIntV<bits<12> funct12, griscvOpcode opcode,
+          dag outs, dag ins, string opcodestr, string argstr, list<dag> pattern>
+    : griscvInst<outs, ins, opcodestr, argstr, pattern, InstFormatIntr> {
+  bits<5> rs1;
+
+  let Inst{31-20} = funct12;
+  let Inst{19-15} = rs1;
+  let Inst{14-12} = 0;
+  let Inst{11-7} = 0;
   let Opcode = opcode.Value;
 }
 

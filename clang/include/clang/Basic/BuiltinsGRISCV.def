@@ -1,0 +1,4 @@
+BUILTIN(__builtin_griscv_rand, "LiLi", "nc")
+BUILTIN(__builtin_griscv_draw, "vLi*", "nc")
+
+#undef BUILTIN
