@@ -32,76 +32,6 @@ inline unsigned array_lengthof(T (&)[N]) {
   return N;
 }
 
-// Returns the opcode of the target-specific SDNode that implements the 32-bit
-// form of the given Opcode.
-static griscvISD::NodeType getGRISCVWOpcode(unsigned Opcode) {
-  switch (Opcode) {
-  default:
-    llvm_unreachable("Unexpected opcode");
-  // case ISD::SHL:
-  //   return griscvISD::SLLW;
-  // case ISD::SRA:
-  //   return griscvISD::SRAW;
-  // case ISD::SRL:
-  //   return griscvISD::SRLW;
-  case ISD::SDIV:
-    return griscvISD::DIVW;
-  case ISD::UDIV:
-    return griscvISD::DIVUW;
-  case ISD::UREM:
-    return griscvISD::REMUW;
-  }
-}
-
-// Converts the given i8/i16/i32 operation to a target-specific SelectionDAG
-// node. Because i8/i16/i32 isn't a legal type for RV64, these operations would
-// otherwise be promoted to i64, making it difficult to select the
-// SLLW/DIVUW/.../*W later one because the fact the operation was originally of
-// type i8/i16/i32 is lost.
-static SDValue customLegalizeToWOp(SDNode *N, SelectionDAG &DAG,
-                                   unsigned ExtOpc = ISD::ANY_EXTEND) {
-  SDLoc DL(N);
-  griscvISD::NodeType WOpcode = getGRISCVWOpcode(N->getOpcode());
-  SDValue NewOp0 = DAG.getNode(ExtOpc, DL, MVT::i64, N->getOperand(0));
-  SDValue NewOp1 = DAG.getNode(ExtOpc, DL, MVT::i64, N->getOperand(1));
-  SDValue NewRes = DAG.getNode(WOpcode, DL, MVT::i64, NewOp0, NewOp1);
-  // ReplaceNodeResults requires we maintain the same type for the return value.
-  return DAG.getNode(ISD::TRUNCATE, DL, N->getValueType(0), NewRes);
-}
-
-// TODO: replace adding ADDIW for i64->i32 bits instructions with
-// native instructions
-void GRISCVTargetLowering::ReplaceNodeResults(SDNode *N,
-                                              SmallVectorImpl<SDValue> &Results,
-                                              SelectionDAG &DAG) const {
-  switch (N->getOpcode()) {
-  default:
-    llvm_unreachable("Don't know how to custom type legalize this operation!");
-  case ISD::SDIV:
-  case ISD::UDIV:
-  case ISD::UREM: {
-    MVT VT = N->getSimpleValueType(0);
-    // Don't promote division/remainder by constant since we should expand those
-    // to multiply by magic constant.
-    AttributeList Attr = DAG.getMachineFunction().getFunction().getAttributes();
-    if (N->getOperand(1).getOpcode() == ISD::Constant &&
-        !isIntDivCheap(N->getValueType(0), Attr))
-      return;
-
-    // If the input is i32, use ANY_EXTEND since the W instructions don't read
-    // the upper 32 bits. For other types we need to sign or zero extend
-    // based on the opcode.
-    unsigned ExtOpc = ISD::ANY_EXTEND;
-    if (VT != MVT::i32)
-      ExtOpc = N->getOpcode() == ISD::SDIV ? ISD::SIGN_EXTEND
-                                           : ISD::ZERO_EXTEND;
-
-    Results.push_back(customLegalizeToWOp(N, DAG, ExtOpc));
-    break;
-  }
-  }
-}
-
 GRISCVTargetLowering::GRISCVTargetLowering(const TargetMachine &TM,
                                            const GRISCVSubtarget &STI)
     : TargetLowering(TM), Subtarget(STI) {
@@ -860,7 +790,6 @@ bool GRISCVTargetLowering::CanLowerReturn(
   return true;
 }
 
-// TODO: rewrite
 SDValue
 GRISCVTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
                                   bool IsVarArg,
@@ -908,25 +837,6 @@ GRISCVTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
   }
 
   unsigned RetOpc = griscvISD::RET_FLAG;
-  // Interrupt service routines use different return instructions.
-  const Function &Func = DAG.getMachineFunction().getFunction();
-  if (Func.hasFnAttribute("interrupt")) {
-    if (!Func.getReturnType()->isVoidTy())
-      report_fatal_error(
-          "Functions with the interrupt attribute must have void return type!");
-
-    MachineFunction &MF = DAG.getMachineFunction();
-    StringRef Kind =
-        MF.getFunction().getFnAttribute("interrupt").getValueAsString();
-
-    if (Kind == "user")
-      RetOpc = griscvISD::URET_FLAG;
-    else if (Kind == "supervisor")
-      RetOpc = griscvISD::SRET_FLAG;
-    else
-      RetOpc = griscvISD::MRET_FLAG;
-  }
-
   return DAG.getNode(RetOpc, DL, MVT::Other, RetOps);
 }
 

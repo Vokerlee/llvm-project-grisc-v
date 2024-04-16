@@ -23,8 +23,6 @@ GRISCVRegisterInfo::GRISCVRegisterInfo() : GRISCVGenRegisterInfo(griscv::X1) {}
 const MCPhysReg *GRISCVRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
   if (MF->getFunction().getCallingConv() == CallingConv::GHC)
     return CSR_NoRegs_SaveList;
-  if (MF->getFunction().hasFnAttribute("interrupt"))
-    return CSR_Interrupt_SaveList;
 
   return CSR_ILP32_LP64_SaveList;
 }

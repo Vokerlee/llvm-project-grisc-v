@@ -28,6 +28,8 @@ void GRISCVFrameLowering::determineCalleeSaves(MachineFunction &MF,
     SavedRegs.set(griscv::X8);
   }
   // Mark BP as used if function has dedicated base pointer.
+  // GRISCV doesn't support varargs yet, so no need base pointer
+  // This peace of code if for future development
   if (hasBP(MF))
     SavedRegs.set(griscvABI::getBPReg());
 }
@@ -146,6 +148,7 @@ void GRISCVFrameLowering::emitPrologue(MachineFunction &MF,
             .setMIFlag(MachineInstr::FrameSetup);
     } else {
       llvm_unreachable(""); // always fixed alignment
+      // here slli + srli emitting can be used, but it is not so brutal
     }
 
     // FP will be used to restore the frame in the epilogue, so we need
@@ -326,7 +329,6 @@ bool GRISCVFrameLowering::hasBP(const MachineFunction &MF) const {
   return MFI.hasVarSizedObjects() && TRI->hasStackRealignment(MF);
 }
 
-// TODO: rewrite!
 StackOffset GRISCVFrameLowering::getFrameIndexReference(const MachineFunction &MF,
                                                         int FI,
                                                         Register &FrameReg) const {
@@ -340,10 +342,9 @@ StackOffset GRISCVFrameLowering::getFrameIndexReference(const MachineFunction &M
   const auto &CSI = MFI.getCalleeSavedInfo();
   int MinCSFI = 0;
   int MaxCSFI = -1;
-  int Offset;
 
-  Offset = MFI.getObjectOffset(FI) - getOffsetOfLocalArea() +
-           MFI.getOffsetAdjustment();
+  int Offset = MFI.getObjectOffset(FI) - getOffsetOfLocalArea() +
+               MFI.getOffsetAdjustment();
 
   if (CSI.size()) {
     MinCSFI = CSI[0].getFrameIdx();
@@ -356,11 +357,13 @@ StackOffset GRISCVFrameLowering::getFrameIndexReference(const MachineFunction &M
   } else if (RI->hasStackRealignment(MF) && !MFI.isFixedObjectIndex(FI)) {
     // Realigned stack
     if (hasBP(MF)) {
+      // This branch is not chosen, as GRISCV doesn't support varargs yet.
       FrameReg = griscvABI::getBPReg();
     } else {
       // VarSize objects must be empty in this case!
       assert(!MFI.hasVarSizedObjects());
       FrameReg = griscv::X2;
+      Offset += MFI.getStackSize();
     }
   } else {
     // TODO: what's going on here

@@ -39,30 +39,13 @@ def griscv_call      : SDNode<"griscvISD::CALL", SDT_griscvCall,
                               SDNPVariadic]>;
 def griscv_ret_flag  : SDNode<"griscvISD::RET_FLAG", SDTNone,
                              [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
-def griscv_uret_flag : SDNode<"griscvISD::URET_FLAG", SDTNone,
-                             [SDNPHasChain, SDNPOptInGlue]>;
-def griscv_sret_flag : SDNode<"griscvISD::SRET_FLAG", SDTNone,
-                             [SDNPHasChain, SDNPOptInGlue]>;
-def griscv_mret_flag : SDNode<"griscvISD::MRET_FLAG", SDTNone,
-                             [SDNPHasChain, SDNPOptInGlue]>;
 def griscv_selectcc  : SDNode<"griscvISD::SELECT_CC", SDT_griscvSelectCC>;
 def griscv_brcc      : SDNode<"griscvISD::BR_CC", SDT_griscvBrCC,
                              [SDNPHasChain]>;
-def griscv_tail      : SDNode<"griscvISD::TAIL", SDT_griscvCall,
-                             [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
-                              SDNPVariadic]>;
-def griscv_sllw      : SDNode<"griscvISD::SLLW", SDT_griscvIntBinOpW>;
-def griscv_sraw      : SDNode<"griscvISD::SRAW", SDT_griscvIntBinOpW>;
-def griscv_srlw      : SDNode<"griscvISD::SRLW", SDT_griscvIntBinOpW>;
 
 def griscv_add_lo : SDNode<"griscvISD::ADD_LO", SDTIntBinOp>;
 def griscv_hi : SDNode<"griscvISD::HI", SDTIntUnaryOp>;
 def griscv_lla : SDNode<"griscvISD::LLA", SDTIntUnaryOp>;
-def griscv_add_tprel : SDNode<"griscvISD::ADD_TPREL",
-                             SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>,
-                                                  SDTCisSameAs<0, 2>,
-                                                  SDTCisSameAs<0, 3>,
-                                                  SDTCisInt<0>]>>;
 
 def griscv_la : SDNode<"griscvISD::LA", SDTLoad,
                       [SDNPHasChain, SDNPMayLoad, SDNPMemOperand]>;
@@ -70,6 +53,7 @@ def griscv_la_tls_ie : SDNode<"griscvISD::LA_TLS_IE", SDTLoad,
                              [SDNPHasChain, SDNPMayLoad, SDNPMemOperand]>;
 def griscv_la_tls_gd : SDNode<"griscvISD::LA_TLS_GD", SDTIntUnaryOp>;
 
+// This part doesn't work now due to ADDIW truncating all stuff to i32
 def griscv_divw  : SDNode<"griscvISD::DIVW",  SDT_griscvIntBinOpW>;
 def griscv_divuw : SDNode<"griscvISD::DIVUW", SDT_griscvIntBinOpW>;
 def griscv_remuw : SDNode<"griscvISD::REMUW", SDT_griscvIntBinOpW>;

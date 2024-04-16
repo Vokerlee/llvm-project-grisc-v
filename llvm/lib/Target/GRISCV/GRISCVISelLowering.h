@@ -14,9 +14,6 @@ enum NodeType : unsigned {
   // Start the numbering where the builtin ops and target ops leave off.
   FIRST_NUMBER = ISD::BUILTIN_OP_END,
   RET_FLAG,
-  URET_FLAG,
-  SRET_FLAG,
-  MRET_FLAG,
   BR_CC,
   CALL,
 
@@ -67,9 +64,6 @@ private:
                          const SmallVectorImpl<ISD::OutputArg> &Outs,
                          bool IsRet, CallLoweringInfo *CLI,
                          GRISCVCCAssignFn Fn) const;
-
-  void ReplaceNodeResults(SDNode *N, SmallVectorImpl<SDValue> &Results,
-                          SelectionDAG &DAG) const override;
 
   SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
 
