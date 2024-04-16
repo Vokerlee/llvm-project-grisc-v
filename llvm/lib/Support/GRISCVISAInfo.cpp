@@ -38,17 +38,12 @@ struct GRISCVSupportedExtension {
 
 } // end anonymous namespace
 
-static constexpr StringLiteral AllStdExts = "mafd";
-
-static const char *GRISCVGImplications[] = {
-  "i", "m", "a", "f", "d"
-};
+static constexpr StringLiteral AllStdExts = "mad";
 
 // NOTE: This table should be sorted alphabetically by extension name.
 static const GRISCVSupportedExtension SupportedExtensions[] = {
     {"a", {2, 1}},
     {"d", {2, 2}},
-    {"f", {2, 2}},
     {"i", {2, 1}},
     {"m", {2, 0}},
 };
@@ -290,11 +285,6 @@ static Error getExtensionVersion(StringRef Ext, StringRef In, unsigned &Major,
         errc::invalid_argument,
         "multi-character extensions must be separated by underscores");
 
-  // Exception rule for `g`, we don't have clear version scheme for that on
-  // ISA spec.
-  if (Ext == "g")
-    return Error::success();
-
   if (MajorStr.empty() && MinorStr.empty()) {
     if (auto DefaultVersion = findDefaultVersion(Ext)) {
       Major = DefaultVersion->Major;
@@ -318,7 +308,7 @@ static Error getExtensionVersion(StringRef Ext, StringRef In, unsigned &Major,
 llvm::Expected<std::unique_ptr<GRISCVISAInfo>>
 GRISCVISAInfo::parseFeatures(unsigned XLen,
                              const std::vector<std::string> &Features) {
-  assert(XLen == 32 || XLen == 64);
+  assert(XLen == 64);
   std::unique_ptr<GRISCVISAInfo> ISAInfo(new GRISCVISAInfo(XLen));
 
   for (auto &Feature : Features) {
@@ -353,15 +343,13 @@ GRISCVISAInfo::parseNormalizedArchString(StringRef Arch) {
   }
   // Must start with a valid base ISA name.
   unsigned XLen;
-  if (Arch.starts_with("rv32i"))
-    XLen = 32;
-  else if (Arch.starts_with("rv64i") )
+  if (Arch.starts_with("rv64i") )
     XLen = 64;
   else
     return createStringError(errc::invalid_argument,
                              "arch string must begin with valid base ISA");
   std::unique_ptr<GRISCVISAInfo> ISAInfo(new GRISCVISAInfo(XLen));
-  // Discard rv32/rv64 prefix.
+  // Discard rv64 prefix.
   Arch = Arch.substr(4);
 
   // Each extension is of the form ${name}${major_version}p${minor_version}
@@ -400,9 +388,7 @@ GRISCVISAInfo::parseNormalizedArchString(StringRef Arch) {
                                "failed to parse major version number");
     ISAInfo->addExtension(ExtName, {MajorVersion, MinorVersion});
   }
-  ISAInfo->updateFLen();
   ISAInfo->updateMinVLen();
-  ISAInfo->updateMaxELen();
   return std::move(ISAInfo);
 }
 
@@ -469,34 +455,23 @@ GRISCVISAInfo::parseArchString(StringRef Arch, bool IgnoreUnknown) {
   if (!(Arch.starts_with("rv32") || HasRV64) || (Arch.size() < 5)) {
     return createStringError(
         errc::invalid_argument,
-        "string must begin with rv32{i,e,g} or rv64{i,e,g}");
+        "string must begin with rv64{i,e,g}");
   }
 
-  unsigned XLen = HasRV64 ? 64 : 32;
+  unsigned XLen = 64;
   std::unique_ptr<GRISCVISAInfo> ISAInfo(new GRISCVISAInfo(XLen));
   MapVector<std::string, GRISCVISAInfo::ExtensionVersion,
             std::map<std::string, unsigned>>
       SeenExtMap;
 
-  // The canonical order specified in ISA manual.
-  // Ref: Table 22.1 in RISC-V User-Level ISA V2.2
-  StringRef StdExts = AllStdExts;
   char Baseline = Arch[4];
 
-  // First letter should be 'e', 'i' or 'g'.
+  // First letter should be 'i'
   switch (Baseline) {
   default:
     return createStringError(errc::invalid_argument,
-                             "first letter should be 'e', 'i' or 'g'");
-  case 'e':
+                             "first letter should be 'i'");
   case 'i':
-    break;
-  case 'g':
-    // g expands to extensions in GRISCVGImplications.
-    if (Arch.size() > 5 && isDigit(Arch[5]))
-      return createStringError(errc::invalid_argument,
-                               "version not supported for 'g'");
-    StdExts = StdExts.drop_front(4);
     break;
   }
 
@@ -508,37 +483,22 @@ GRISCVISAInfo::parseArchString(StringRef Arch, bool IgnoreUnknown) {
   StringRef Exts = Arch.substr(5);
 
   unsigned Major, Minor, ConsumeLength;
-  if (Baseline == 'g') {
-    // Versions for g are disallowed, and this was checked for previously.
-    ConsumeLength = 0;
 
-    // No matter which version is given to `g`, we always set imafd to default
-    // version since the we don't have clear version scheme for that on
-    // ISA spec.
-    for (const auto *Ext : GRISCVGImplications) {
-      if (auto Version = findDefaultVersion(Ext)) {
-        // Postpone AddExtension until end of this function
-        SeenExtMap[Ext] = {Version->Major, Version->Minor};
-      } else
-        llvm_unreachable("Default extension version not found?");
-    }
-  } else {
-    // Baseline is `i` or `e`
-    if (auto E = getExtensionVersion(
-            StringRef(&Baseline, 1), Exts, Major, Minor, ConsumeLength)) {
-      if (!IgnoreUnknown)
-        return std::move(E);
-      // If IgnoreUnknown, then ignore an unrecognised version of the baseline
-      // ISA and just use the default supported version.
-      consumeError(std::move(E));
-      auto Version = findDefaultVersion(StringRef(&Baseline, 1));
-      Major = Version->Major;
-      Minor = Version->Minor;
-    }
-
-    // Postpone AddExtension until end of this function
-    SeenExtMap[StringRef(&Baseline, 1).str()] = {Major, Minor};
+  // Baseline is `i`
+  if (auto E = getExtensionVersion(
+          StringRef(&Baseline, 1), Exts, Major, Minor, ConsumeLength)) {
+    if (!IgnoreUnknown)
+      return std::move(E);
+    // If IgnoreUnknown, then ignore an unrecognised version of the baseline
+    // ISA and just use the default supported version.
+    consumeError(std::move(E));
+    auto Version = findDefaultVersion(StringRef(&Baseline, 1));
+    Major = Version->Major;
+    Minor = Version->Minor;
   }
+
+  // Postpone AddExtension until end of this function
+  SeenExtMap[StringRef(&Baseline, 1).str()] = {Major, Minor};
 
   // Consume the base ISA version number and any '_' between rvxxx and the
   // first extension
@@ -603,7 +563,7 @@ struct ImpliedExtsEntry {
 
 // Note: The table needs to be sorted by name.
 static ImpliedExtsEntry ImpliedExts[] = {
-    {{"d"}, {"f"}},
+    {{"d"}},
 };
 
 void GRISCVISAInfo::updateImplication() {
@@ -644,15 +604,6 @@ struct CombinedExtsEntry {
   ArrayRef<const char *> RequiredExts;
 };
 
-void GRISCVISAInfo::updateFLen() {
-  FLen = 0;
-  // TODO: Handle q extension.
-  if (Exts.count("d"))
-    FLen = 64;
-  else if (Exts.count("f"))
-    FLen = 32;
-}
-
 void GRISCVISAInfo::updateMinVLen() {
   for (auto const &Ext : Exts) {
     StringRef ExtName = Ext.first;
@@ -661,24 +612,6 @@ void GRISCVISAInfo::updateMinVLen() {
       unsigned ZvlLen;
       if (!ExtName.getAsInteger(10, ZvlLen))
         MinVLen = std::max(MinVLen, ZvlLen);
-    }
-  }
-}
-
-void GRISCVISAInfo::updateMaxELen() {
-  // handles EEW restriction by sub-extension zve
-  for (auto const &Ext : Exts) {
-    StringRef ExtName = Ext.first;
-    bool IsZveExt = ExtName.consume_front("zve");
-    if (IsZveExt) {
-      if (ExtName.back() == 'f')
-        MaxELenFp = std::max(MaxELenFp, 32u);
-      if (ExtName.back() == 'd')
-        MaxELenFp = std::max(MaxELenFp, 64u);
-      ExtName = ExtName.drop_back();
-      unsigned ZveELen;
-      ExtName.getAsInteger(10, ZveELen);
-      MaxELen = std::max(MaxELen, ZveELen);
     }
   }
 }
@@ -703,9 +636,7 @@ std::string GRISCVISAInfo::toString() const {
 llvm::Expected<std::unique_ptr<GRISCVISAInfo>>
 GRISCVISAInfo::postProcessAndChecking(std::unique_ptr<GRISCVISAInfo> &&ISAInfo) {
   ISAInfo->updateImplication();
-  ISAInfo->updateFLen();
   ISAInfo->updateMinVLen();
-  ISAInfo->updateMaxELen();
 
   if (Error Result = ISAInfo->checkDependency())
     return std::move(Result);
@@ -713,17 +644,9 @@ GRISCVISAInfo::postProcessAndChecking(std::unique_ptr<GRISCVISAInfo> &&ISAInfo) 
 }
 
 StringRef GRISCVISAInfo::computeDefaultABI() const {
-  if (XLen == 32) {
-    if (hasExtension("d"))
-      return "ilp32d";
-    if (hasExtension("f"))
-      return "ilp32f";
-    return "ilp32";
-  } else if (XLen == 64) {
+  if (XLen == 64) {
     if (hasExtension("d"))
       return "lp64d";
-    if (hasExtension("f"))
-      return "lp64f";
     return "lp64"; // default case (other are not implemented)
   }
   llvm_unreachable("Invalid XLEN");
