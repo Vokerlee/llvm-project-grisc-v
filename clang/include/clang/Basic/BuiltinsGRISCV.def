@@ -1,4 +1,5 @@
 BUILTIN(__builtin_griscv_rand, "LiLi", "nc")
-BUILTIN(__builtin_griscv_draw, "vLi*", "nc")
+BUILTIN(__builtin_griscv_gr_frame, "i*Li", "nc")
+BUILTIN(__builtin_griscv_gr_flush, "v", "nc")
 
 #undef BUILTIN

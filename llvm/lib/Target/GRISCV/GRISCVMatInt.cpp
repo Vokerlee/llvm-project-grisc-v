@@ -39,7 +39,8 @@ static void generateInstSeqImpl(int64_t Val,
     return;
   }
 
-  llvm_unreachable("64 bit wtf");
+  llvm_unreachable("64 bit values are banned (due to shift ops not implemented), "
+                   "find another way, please");
 }
 
 namespace llvm {

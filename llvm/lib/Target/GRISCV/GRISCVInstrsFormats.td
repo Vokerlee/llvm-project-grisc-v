@@ -130,10 +130,8 @@ class griscvInstInt<bits<12> funct12, griscvOpcode opcode,
 class griscvInstIntV<bits<12> funct12, griscvOpcode opcode,
           dag outs, dag ins, string opcodestr, string argstr, list<dag> pattern>
     : griscvInst<outs, ins, opcodestr, argstr, pattern, InstFormatIntr> {
-  bits<5> rs1;
-
   let Inst{31-20} = funct12;
-  let Inst{19-15} = rs1;
+  let Inst{19-15} = 0;
   let Inst{14-12} = 0;
   let Inst{11-7} = 0;
   let Opcode = opcode.Value;

@@ -339,9 +339,10 @@ def LWU   : Load_ri<0b110, "lwu">, Sched<[WriteLDW, ReadMemBase]>;
 def LD    : Load_ri<0b011, "ld">, Sched<[WriteLDD, ReadMemBase]>;
 def SD    : Store_rri<0b011, "sd">, Sched<[WriteSTD, ReadStoreData, ReadMemBase]>;
 
-def SLLI : Shift_ri<0b00000, 0b001, "slli">;
-def SRLI : Shift_ri<0b00000, 0b101, "srli">;
-def SRAI : Shift_ri<0b01000, 0b101, "srai">;
+// Temporary banned
+// def SLLI : Shift_ri<0b00000, 0b001, "slli">;
+// def SRLI : Shift_ri<0b00000, 0b101, "srli">;
+// def SRAI : Shift_ri<0b01000, 0b101, "srai">;
 
 def ADDI  : ALU_ri<0b000, "addi">;
 
@@ -353,12 +354,12 @@ def ADDIW : griscvInstI<0b000, OPC_OP_IMM_32, (outs GPR:$rd),
 
 def ADD  : ALU_rr<0b0000000, 0b000, "add">, Sched<[WriteIALU, ReadIALU, ReadIALU]>;
 def SUB  : ALU_rr<0b0100000, 0b000, "sub">, Sched<[WriteIALU, ReadIALU, ReadIALU]>;
-def SLL  : ALU_rr<0b0000000, 0b001, "sll">, Sched<[WriteShiftReg, ReadShiftReg, ReadShiftReg]>;
-def SLT  : ALU_rr<0b0000000, 0b010, "slt">, Sched<[WriteIALU, ReadIALU, ReadIALU]>;
-def SLTU : ALU_rr<0b0000000, 0b011, "sltu">, Sched<[WriteIALU, ReadIALU, ReadIALU]>;
+// def SLL  : ALU_rr<0b0000000, 0b001, "sll">, Sched<[WriteShiftReg, ReadShiftReg, ReadShiftReg]>;
+// def SLT  : ALU_rr<0b0000000, 0b010, "slt">, Sched<[WriteIALU, ReadIALU, ReadIALU]>;
+// def SLTU : ALU_rr<0b0000000, 0b011, "sltu">, Sched<[WriteIALU, ReadIALU, ReadIALU]>;
 def XOR  : ALU_rr<0b0000000, 0b100, "xor">, Sched<[WriteIALU, ReadIALU, ReadIALU]>;
-def SRL  : ALU_rr<0b0000000, 0b101, "srl">, Sched<[WriteShiftReg, ReadShiftReg, ReadShiftReg]>;
-def SRA  : ALU_rr<0b0100000, 0b101, "sra">, Sched<[WriteShiftReg, ReadShiftReg, ReadShiftReg]>;
+// def SRL  : ALU_rr<0b0000000, 0b101, "srl">, Sched<[WriteShiftReg, ReadShiftReg, ReadShiftReg]>;
+// def SRA  : ALU_rr<0b0100000, 0b101, "sra">, Sched<[WriteShiftReg, ReadShiftReg, ReadShiftReg]>;
 def OR   : ALU_rr<0b0000000, 0b110, "or">, Sched<[WriteIALU, ReadIALU, ReadIALU]>;
 def AND  : ALU_rr<0b0000000, 0b111, "and">, Sched<[WriteIALU, ReadIALU, ReadIALU]>;
 
@@ -383,8 +384,8 @@ def REMW    : ALUW_rr<0b0000001, 0b110, "remw">,
 def REMUW   : ALUW_rr<0b0000001, 0b111, "remuw">,
               Sched<[WriteIDiv32, ReadIDiv32, ReadIDiv32]>;
 
-def SLTI  : ALU_ri<0b010, "slti">;
-def SLTIU : ALU_ri<0b011, "sltiu">;
+// def SLTI  : ALU_ri<0b010, "slti">;
+// def SLTIU : ALU_ri<0b011, "sltiu">;
 
 let isReMaterializable = 1, isAsCheapAsAMove = 1 in {
 def XORI  : ALU_ri<0b100, "xori">;
@@ -394,12 +395,14 @@ def ORI   : ALU_ri<0b110, "ori">;
 def ANDI  : ALU_ri<0b111, "andi">;
 
 def RAND : griscvInstInt<0b000000000111, OPC_INTRINSIC,
-    (outs GPR:$rd), (ins GPR:$rs1), "rand", "$rd, $rs1", []>;
-def DRAW : griscvInstIntV<0b000000001111, OPC_INTRINSIC,
-    (outs), (ins GPR:$rs1), "draw", "$rs1", []>;
+    (outs GPR:$rd), (ins GPR:$rs1), "rand", "$rd", []>;
+def FLUSH : griscvInstIntV<0b000000001111, OPC_INTRINSIC,
+    (outs), (ins), "flush", "", [(int_griscv_gr_flush)]>;
+def GET_FRAME : griscvInstInt<0b000000011111, OPC_INTRINSIC,
+    (outs GPR:$rd), (ins GPR:$rs1), "gf", "$rd", []>;
 
 def : Pat<(int_griscv_rand GPR:$rs1), (RAND GPR:$rs1)>;
-def : Pat<(int_griscv_draw GPR:$rs1), (DRAW GPR:$rs1)>;
+def : Pat<(int_griscv_gr_frame GPR:$rs1), (GET_FRAME GPR:$rs1)>;
 
 //===----------------------------------------------------------------------===//
 // Pseudo-instructions and codegen patterns
@@ -545,9 +548,10 @@ def : PatGprGpr<and, AND>;
 def : PatGprSimm12<and, ANDI>;
 def : PatGprGpr<xor, XOR>;
 def : PatGprSimm12<xor, XORI>;
-def : PatGprUimmLog2XLen<shl, SLLI>;
-def : PatGprUimmLog2XLen<srl, SRLI>;
-def : PatGprUimmLog2XLen<sra, SRAI>;
+// Temporary banned
+// def : PatGprUimmLog2XLen<shl, SLLI>;
+// def : PatGprUimmLog2XLen<srl, SRLI>;
+// def : PatGprUimmLog2XLen<sra, SRAI>;
 
 def : PatGprGpr<mul, MUL>;
 def : PatGprGpr<sdiv, DIV>;
@@ -555,14 +559,16 @@ def : PatGprGpr<udiv, DIVU>;
 def : PatGprGpr<srem, REM>;
 def : PatGprGpr<urem, REMU>;
 
-def : PatGprGpr<griscv_divw, DIVW>;
-def : PatGprGpr<griscv_divuw, DIVUW>;
-def : PatGprGpr<griscv_remuw, REMUW>;
+// Temporary banned
+// def : PatGprGpr<griscv_divw, DIVW>;
+// def : PatGprGpr<griscv_divuw, DIVUW>;
+// def : PatGprGpr<griscv_remuw, REMUW>;
 
-def : PatGprGpr<setlt, SLT>;
-def : PatGprSimm12<setlt, SLTI>;
-def : PatGprGpr<setult, SLTU>;
-def : PatGprSimm12<setult, SLTIU>;
+// For future implementation
+// def : PatGprGpr<setlt, SLT>;
+// def : PatGprSimm12<setlt, SLTI>;
+// def : PatGprGpr<setult, SLTU>;
+// def : PatGprSimm12<setult, SLTIU>;
 
 /// FrameIndex calculations
 
